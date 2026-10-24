@@ -1,0 +1,54 @@
+-- =============================================================================
+-- Source:   Ookla Speedtest Global Fixed and Mobile Network Performance
+-- License:  CC BY-NC-SA 4.0 -- NON-COMMERCIAL (verified)
+--           https://creativecommons.org/licenses/by-nc-sa/4.0/
+--           Fine for an internal demo/event or a tutorial repo. Do NOT anchor
+--           anything resembling a commercial Zetaris feature or customer
+--           deliverable on this source without a separate license
+--           conversation with Ookla. Say this out loud in the demo.
+-- Format:   Parquet (also ships as Shapefile -- same data, two formats)
+-- Docs:     https://github.com/teamookla/ookla-open-data
+--           https://github.com/teamookla/ookla-open-data/blob/master/README.md
+-- Before running: confirm the current quarter is available --
+--   aws s3 ls --no-sign-request s3://ookla-open-data/parquet/performance/type=fixed/
+--
+-- KNOWN TO FAIL -- kept here as-is, not in the main sql/ sequence. Both
+-- CREATE LIGHTNING FILESTORE TABLE statements below fail with a 500 error
+-- -- this fails at table-registration time, before any query is possible,
+-- unlike Foursquare/Overture/GBIF which register successfully and fail
+-- later. See sql/known_to_fail/ISSUE-07-ookla.md for the full writeup.
+-- =============================================================================
+--
+-- CAVEAT: this bucket is public/anonymous. The table options below use
+-- Zetaris's public-bucket configuration and the us-west-2 S3 endpoint, so
+-- this script does not need AWS credential values.
+--
+-- PREREQUISITE: OOKLA_S3 must be registered as a logical database before
+-- the tables below can reference it in FROM -- see HOWTO.md sec 1.
+CREATE LIGHTNING DATABASE OOKLA_S3 DESCRIBE BY "Ookla Speedtest Global Performance S3 filestore source";
+
+-- FAILED with a 500 error:
+CREATE LIGHTNING FILESTORE TABLE ookla_speedtest_fixed FROM OOKLA_S3 FORMAT PARQUET OPTIONS (
+  PATH "s3a://ookla-open-data/parquet/performance/type=fixed/year=2026/quarter=2/2026-04-01_performance_fixed_tiles.parquet",
+  inferSchema "true",
+  isS3BucketPublic "true",
+  useS3PathStyleAccess "true",
+  s3Endpoint "s3.us-west-2.amazonaws.com"
+);
+
+-- Mobile is the same path pattern with type=mobile instead of type=fixed.
+-- Also FAILED with a 500 error:
+CREATE LIGHTNING FILESTORE TABLE ookla_speedtest_mobile FROM OOKLA_S3 FORMAT PARQUET OPTIONS (
+  PATH "s3a://ookla-open-data/parquet/performance/type=mobile/year=2026/quarter=2/2026-04-01_performance_mobile_tiles.parquet",
+  inferSchema "true",
+  isS3BucketPublic "true",
+  useS3PathStyleAccess "true",
+  s3Endpoint "s3.us-west-2.amazonaws.com"
+);
+
+-- Note: the filename date (2026-04-01 above) always reflects the *first day*
+-- of the quarter, not the file's publish date -- confirm the current
+-- quarter's exact filename with the listing command above rather than
+-- guessing the date pattern.
+
+-- Next: verify with sql/07_ookla_speedtest_select.sql

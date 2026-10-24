@@ -1,0 +1,40 @@
+-- =============================================================================
+-- Verification and example queries for 01_edgar_company_facts_create.sql.
+-- Assumes that script has already been run.
+--
+-- Commented out by default so running this whole file doesn't silently
+-- fire a read query (and a fresh live re-fetch, see the SQL companion
+-- guide) against every company's view. Uncomment what you want to run,
+-- swap in the CIK/table name for the company you're checking, or run
+-- individually in the SQL Editor.
+-- =============================================================================
+
+-- === Diagnostic === (run per company if a view comes back empty or looks wrong)
+-- SELECT * FROM sec_data.<company>_revenue_facts;
+-- DESCRIBE sec_data.<company>_revenue_facts;
+
+-- === Verification ===
+-- Do this before relying on any view above -- see the create script's
+-- caveats. Confirm each REST table's row count matches the live SEC
+-- endpoint. Run once per company, swapping the CIK in the URL and the
+-- table name:
+--   curl -s -A "YOUR_APP_NAME YOUR_CONTACT_EMAIL" \
+--     https://data.sec.gov/api/xbrl/companyconcept/CIK0000320193/us-gaap/Revenues.json \
+--     | jq '.units.USD | length'
+-- Then compare against:
+-- SELECT COUNT(*) FROM edgar.apple_revenue_table;
+-- SELECT COUNT(*) FROM edgar.ibm_revenue_table;
+-- SELECT COUNT(*) FROM edgar.oracle_revenue_table;
+-- SELECT COUNT(*) FROM edgar.walmart_revenue_table;
+-- SELECT COUNT(*) FROM edgar.target_revenue_table;
+-- SELECT COUNT(*) FROM edgar.ford_revenue_table;
+-- SELECT COUNT(*) FROM edgar.tesla_revenue_table;
+-- If the Zetaris count is lower, don't trust that table for real
+-- analysis until that's resolved.
+
+-- Downstream note: EDGAR's companyconcept payload often contains
+-- overlapping periods across 10-Q and 10-K filings (a quarter appears
+-- standalone and rolled into the annual figure). Keep each view as raw
+-- fact history; filter at query time, e.g.:
+--   SELECT * FROM edgar.apple_revenue_table WHERE form_type = '10-K';
+--   SELECT * FROM edgar.tesla_revenue_table WHERE fiscal_period = 'Q1';
