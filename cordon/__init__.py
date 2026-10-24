@@ -1,0 +1,2 @@
+"""Cordon decision-support primitives."""
+
