@@ -1,2 +1,4 @@
 resources-setup/
+__pycache__/
+*.py[cod]
 .env
