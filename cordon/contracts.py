@@ -88,6 +88,16 @@ class Decision:
 
 
 @dataclass(frozen=True)
+class Action:
+    id: str
+    action_type: str
+    target: str
+    draft: str
+    approval_state: str
+    evidence_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class TraceEvent:
     run_id: str
     step_id: str
