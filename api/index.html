@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cordon Operations Board</title>
+  <style>
+    :root { --ink:#17202a; --muted:#66727d; --paper:#f5f7f4; --panel:#fff; --line:#dce3df; --red:#c24b3d; --amber:#b47718; --green:#287c62; --blue:#2f6574; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:linear-gradient(135deg,#eef3ef 0%,#f9f7f0 100%); font:15px/1.45 Georgia,serif; }
+    header { display:flex; justify-content:space-between; align-items:end; gap:20px; padding:34px clamp(20px,5vw,72px) 24px; border-bottom:1px solid var(--line); }
+    h1,h2,h3,p { margin:0; } h1 { font:700 clamp(28px,4vw,48px)/1.05 Georgia,serif; letter-spacing:0; } h2 { font-size:20px; } h3 { font-size:16px; }
+    .eyebrow { color:var(--blue); font:700 12px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+    .subtle { color:var(--muted); } .status { display:flex; align-items:center; gap:8px; color:var(--green); font:700 12px ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .dot { width:9px; height:9px; border-radius:50%; background:var(--green); box-shadow:0 0 0 4px #d9eee5; }
+    main { max-width:1400px; margin:0 auto; padding:26px clamp(20px,5vw,72px) 56px; }
+    .toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px; } button { border:0; border-radius:4px; padding:10px 15px; color:#fff; background:var(--blue); cursor:pointer; font:700 13px ui-monospace,SFMono-Regular,Consolas,monospace; } button:hover { filter:brightness(.9); } button.secondary { color:var(--ink); background:#e5ece8; }
+    .lanes { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px; } .lane { min-height:185px; background:rgba(255,255,255,.82); border:1px solid var(--line); border-top:4px solid var(--blue); padding:16px; } .lane.act { border-top-color:var(--red); } .lane.plan { border-top-color:var(--amber); } .lane.closed { border-top-color:var(--green); }
+    .lane-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; } .count { color:var(--muted); font:700 12px ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .finding { padding:11px 0; border-top:1px solid var(--line); } .finding:first-child { border-top:0; padding-top:0; } .finding strong { display:block; } .finding small { color:var(--muted); }
+    .context { display:grid; grid-template-columns:1.15fr .85fr; gap:14px; margin-bottom:22px; } .context .panel { min-height:130px; }
+    .facts { display:grid; grid-template-columns:repeat(2,1fr); gap:10px 20px; } .fact label { display:block; color:var(--muted); font:700 11px ui-monospace,SFMono-Regular,Consolas,monospace; text-transform:uppercase; } .fact span { display:block; margin-top:2px; }
+    .warning { border-left:4px solid var(--amber); background:#fff9ec; } .grid { display:grid; grid-template-columns:1.15fr .85fr; gap:20px; } .panel { background:var(--panel); border:1px solid var(--line); padding:18px; } .panel h2 { margin-bottom:15px; }
+    .path { padding:12px 0; border-top:1px solid var(--line); } .path:first-child { border-top:0; } .nodes { color:var(--blue); font:700 13px ui-monospace,SFMono-Regular,Consolas,monospace; } .metrics { color:var(--muted); margin-top:3px; }
+    .action { display:flex; justify-content:space-between; align-items:start; gap:14px; padding:12px 0; border-top:1px solid var(--line); } .action:first-child { border-top:0; } .action button { white-space:nowrap; padding:7px 10px; } .pending { color:var(--amber); font:700 11px ui-monospace,SFMono-Regular,Consolas,monospace; text-transform:uppercase; }
+    .trace { margin-top:20px; } .event { display:grid; grid-template-columns:150px 150px 1fr; gap:10px; padding:8px 0; border-top:1px solid var(--line); font-size:13px; } .event code { color:var(--blue); }
+    .empty { color:var(--muted); font-style:italic; } .error { color:var(--red); padding:12px 0; }
+    @media (max-width:800px) { header,.toolbar { align-items:start; flex-direction:column; } .lanes,.grid,.context { grid-template-columns:1fr; } .event { grid-template-columns:1fr; gap:2px; } }
+  </style>
+</head>
+<body>
+  <header><div><div class="eyebrow">Cordon / clinical exposure operations</div><h1>Decision board</h1><p class="subtle">Evidence-backed prioritisation with a human approval boundary.</p></div><div class="status"><span class="dot"></span><span id="status">Ready</span></div></header>
+  <main>
+    <div class="toolbar"><div><div class="eyebrow">Run control</div><p id="run-id" class="subtle">No run loaded</p></div><button id="run">Start composite scenario</button></div>
+    <section class="context"><article class="panel"><div class="eyebrow">Scenario scope</div><div class="facts"><div class="fact"><label>Scenario</label><span id="scenario">Not started</span></div><div class="fact"><label>Scope</label><span id="scope">Not started</span></div><div class="fact"><label>Risk focus</label><span id="risk-focus">Not started</span></div><div class="fact"><label>Data mode</label><span id="data-mode">Not started</span></div></div></article><article class="panel warning"><div class="eyebrow">Provenance boundary</div><p id="provenance" class="subtle">Run the scenario to inspect data provenance.</p></article></section>
+    <section class="lanes"><article class="lane act"><div class="lane-title"><h2>Act now</h2><span class="count" id="act-count">0</span></div><div id="act"></div></article><article class="lane plan"><div class="lane-title"><h2>Plan</h2><span class="count" id="plan-count">0</span></div><div id="plan"></div></article><article class="lane closed"><div class="lane-title"><h2>Closed</h2><span class="count" id="closed-count">0</span></div><div id="closed"></div></article></section>
+    <section class="grid"><article class="panel"><h2>Selected attack paths</h2><div id="paths"><p class="empty">Run the board to load paths.</p></div></article><article class="panel"><h2>Pending actions</h2><div id="actions"><p class="empty">No actions loaded.</p></div></article></section>
+    <section class="panel trace"><h2>Trace timeline</h2><div id="events"><p class="empty">Run the board to load the agent timeline.</p></div></section>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    let runId = null;
+    let currentActions = [];
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    async function request(url, options) { const response = await fetch(url, options); if (!response.ok) throw new Error(`${response.status} ${response.statusText}`); return response.json(); }
+    function renderLanes(board) { for (const lane of ['Act now','Plan','Closed']) { const key = lane === 'Act now' ? 'act' : lane.toLowerCase(); const items = board.lanes[lane] || []; $(`${key}-count`).textContent = items.length; $(`${key}`).innerHTML = items.length ? items.map(item => `<div class="finding"><strong>${escapeHtml(item.finding_id)}</strong><small>${escapeHtml(item.rationale)}</small></div>`).join('') : '<p class="empty">No findings</p>'; } }
+    function renderPaths(data) { $('paths').innerHTML = data.paths.length ? data.paths.map(path => `<div class="path"><div class="nodes">${path.nodes.map(escapeHtml).join(' → ')}</div><div class="metrics">${escapeHtml(path.clinical_service)} · impact ${escapeHtml(path.impact_score)} · ${path.evidence_ids.length} evidence references</div></div>`).join('') : '<p class="empty">No reachable attack paths.</p>'; }
+    function renderActions(actions, gaps) { currentActions = [...actions, ...gaps]; $('actions').innerHTML = currentActions.length ? currentActions.map(action => { const state = action.approval_state || 'pending'; const result = action.execution_state || ''; return `<div class="action"><div><strong>${escapeHtml(action.action_type)}</strong><div>${escapeHtml(action.target)}</div><span class="pending">${escapeHtml(state)}${result ? ` · ${escapeHtml(result)}` : ''}</span></div><button class="secondary" data-action="${escapeHtml(action.id)}" ${state !== 'pending' ? 'disabled' : ''}>${state === 'pending' ? 'Approve' : 'Recorded'}</button></div>`; }).join('') : '<p class="empty">No actions loaded.</p>'; document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => approve(button.dataset.action))); }
+    function renderTrace(data) { $('events').innerHTML = data.events.map(event => `<div class="event"><code>${escapeHtml(event.actor)}</code><strong>${escapeHtml(event.event)}</strong><span>${escapeHtml(event.status)} · ${escapeHtml((event.evidence_ids || []).length)} evidence references</span></div>`).join(''); }
+    async function load(id) { const [board, paths, trace] = await Promise.all([request(`/runs/${id}/board`), request(`/runs/${id}/paths`), request(`/runs/${id}/trace`)]); renderLanes(board); renderPaths(paths); renderTrace(trace); }
+    function renderContext(context) { $('scenario').textContent = context.scenario; $('scope').textContent = context.scope; $('risk-focus').textContent = context.risk_focus; $('data-mode').textContent = context.mode; $('provenance').textContent = context.live_zetaris ? 'Live Zetaris data is active.' : context.live_zetaris_note; }
+    async function start() { $('status').textContent = 'Running…'; try { const result = await request('/run', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mode:'sample', scenario:'composite-sample-s2-s7'})}); runId = result.run_id; $('run-id').textContent = runId; renderContext(result.context); renderActions(result.actions, result.coverage_gaps); await load(runId); $('status').textContent = 'Run complete'; } catch (error) { $('status').textContent = 'Unavailable'; $('events').innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`; } }
+    async function approve(actionId) { const action = currentActions.find(item => item.id === actionId); if (!action) return; action.approval_state = 'approved'; renderActions([], currentActions); try { const result = await request(`/runs/${runId}/actions/${actionId}/approve`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({approved:true})}); action.execution_state = result.executed ? 'executed' : 'recorded'; renderActions([], currentActions); await load(runId); } catch (error) { action.approval_state = 'pending'; action.execution_state = ''; renderActions([], currentActions); } }
+    $('run').addEventListener('click', start);
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .app import CordonApplication
@@ -14,6 +15,14 @@ class CordonRequestHandler(BaseHTTPRequestHandler):
         encoded = json.dumps(body, sort_keys=True).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def _send_html(self) -> None:
+        encoded = (Path(__file__).with_name("index.html")).read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
         self.end_headers()
         self.wfile.write(encoded)
@@ -37,7 +46,11 @@ class CordonRequestHandler(BaseHTTPRequestHandler):
         self._send(response.status, response.body)
 
     def do_GET(self) -> None:
-        parts = urlparse(self.path).path.strip("/").split("/")
+        path = urlparse(self.path).path
+        if path == "/":
+            self._send_html()
+            return
+        parts = path.strip("/").split("/")
         if len(parts) == 3 and parts[0] == "runs":
             run_id = parts[1]
             response = {

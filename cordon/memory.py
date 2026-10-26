@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from urllib.request import Request, urlopen
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -93,3 +94,31 @@ class HMemStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(asdict(record), sort_keys=True) + "\n")
+
+
+class HttpHMemStore:
+    """HTTP client for the live H-MEM service."""
+
+    def __init__(self, base_url: str, timeout: float = 10.0) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+
+    def remember(self, content: str, **metadata: Any) -> dict[str, Any]:
+        return self._post("/memory/remember", {"content": content, **metadata})["memory"]
+
+    def retrieve(self, query: str, *, limit: int = 5, include_expired: bool = False) -> list[dict[str, Any]]:
+        return self._post("/memory/retrieve", {
+            "query": query,
+            "limit": limit,
+            "include_expired": include_expired,
+        })["memories"]
+
+    def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        request = Request(
+            f"{self.base_url}{path}",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=self.timeout) as response:
+            return json.loads(response.read().decode("utf-8"))

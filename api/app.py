@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from cordon.execution import ExecutionGateway
+import os
+
+from cordon.execution import ExecutionGateway, HttpExecutionGateway
 from cordon.runtime import run
 
 
@@ -20,13 +22,17 @@ class CordonApplication:
     def __init__(self, execution: ExecutionGateway | None = None) -> None:
         self.runs: dict[str, dict[str, Any]] = {}
         self.approvals: dict[str, str] = {}
-        self.execution = execution or ExecutionGateway()
+        self.execution = execution or (
+            HttpExecutionGateway(os.environ["EXECUTION_SERVICE_URL"])
+            if os.getenv("EXECUTION_SERVICE_URL")
+            else ExecutionGateway()
+        )
 
     def create_run(self, payload: dict[str, Any] | None = None) -> ApiResponse:
         payload = payload or {}
         if payload.get("mode", "sample") != "sample":
             return ApiResponse(400, {"error": "only sample mode is available"})
-        result = run()
+        result = run(scenario=payload.get("scenario", "composite-sample"))
         self.runs[result["run_id"]] = result
         return ApiResponse(201, self._public_result(result))
 
@@ -72,6 +78,22 @@ class CordonApplication:
             if action is not None
             else None
         )
+        if action is not None:
+            action["approval_state"] = state
+            action["execution_state"] = "executed" if execution and execution.executed else "recorded"
+        self.runs[run_id]["events"].append({
+            "run_id": run_id,
+            "step_id": f"approval-{approval_id}",
+            "actor": "human-approval",
+            "event": "action_approved" if approved else "action_rejected",
+            "evidence_ids": action.get("evidence_ids", []) if action else [],
+            "status": "ok",
+            "details": {
+                "action_id": action_id,
+                "approval_state": state,
+                "executed": execution.executed if execution else False,
+            },
+        })
         return ApiResponse(200, {
             "run_id": run_id,
             "action_id": action_id,
@@ -86,6 +108,7 @@ class CordonApplication:
     def _public_result(result: dict[str, Any]) -> dict[str, Any]:
         return {
             "run_id": result["run_id"],
+            "context": result["context"],
             "findings": result["findings"],
             "paths": result["paths"],
             "decisions": result["decisions"],

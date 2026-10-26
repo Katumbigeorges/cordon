@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+import os
 from typing import Any, Callable
 
 from .contracts import Action, Decision, Finding, TraceEvent
@@ -17,6 +18,7 @@ from .sample_data import (
     scan_findings,
     telemetry,
 )
+from .zetaris_live import load_live_context
 
 
 @dataclass(frozen=True)
@@ -55,13 +57,21 @@ class DataExecutor:
 
     def execute(self, plan: dict[str, Any]) -> dict[str, Any]:
         rows = scan_findings()
+        cves = [row.cve for row in rows]
+        zetaris = load_live_context(cves) if os.getenv("ZETARIS_LIVE", "false").lower() == "true" else {
+            "live": False,
+            "source_count": 0,
+            "sources": [],
+            "threat_data": {},
+        }
         return {
             "assets": hospital_assets(),
             "firewall_rules": firewall_rules(),
             "credentials_map": credentials_map(),
             "telemetry": telemetry(),
             "risk_acceptances": risk_acceptances(),
-            "findings": reconcile(rows),
+            "findings": reconcile(rows, zetaris["threat_data"] or None),
+            "zetaris": zetaris,
             "evidence_ids": tuple(row.evidence_id for row in rows),
             "plan_queries": plan["queries"],
         }

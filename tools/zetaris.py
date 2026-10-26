@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 
 class ZetarisError(RuntimeError):
@@ -84,6 +84,16 @@ def _request_payload(sql: str, query_id: str, limit: int) -> dict[str, Any]:
     return {"queryId": query_id, "sql": sql, "source": "SqlEditor", "limit": limit}
 
 
+def _query_uuid(query_id: str | None) -> str:
+    if query_id:
+        try:
+            UUID(query_id)
+            return query_id
+        except ValueError:
+            pass
+    return str(uuid4())
+
+
 def _live_query(
     payload: dict[str, Any],
     *,
@@ -109,7 +119,8 @@ def _live_query(
         with opener(request, timeout=timeout) as response:
             return json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
-        raise ZetarisError(f"Zetaris returned HTTP {error.code}") from error
+        detail = error.read().decode("utf-8", errors="replace")[:300]
+        raise ZetarisError(f"Zetaris returned HTTP {error.code}: {detail}") from error
     except (URLError, TimeoutError, ValueError) as error:
         raise ZetarisError("Zetaris request failed") from error
 
@@ -141,7 +152,7 @@ def run_sql(
     if missing:
         raise ZetarisError(f"missing Zetaris configuration: {', '.join(missing)}")
     return _live_query(
-        _request_payload(sql, query_id or template, int(_setting("ZETARIS_QUERY_LIMIT") or "1000")),
+        _request_payload(sql, _query_uuid(query_id), int(_setting("ZETARIS_QUERY_LIMIT") or "1000")),
         base_url=base_url,
         api_key=api_key,
         org_id=org_id,

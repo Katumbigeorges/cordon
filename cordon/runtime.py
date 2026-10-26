@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
@@ -8,7 +9,7 @@ from uuid import uuid4
 
 from .agents import run_agent_loop
 from .contracts import TraceEvent
-from .memory import HMemStore
+from .memory import HMemStore, HttpHMemStore
 from .providers import ModelProvider, provider_from_environment
 
 
@@ -27,23 +28,50 @@ def run(
     log_path: str | Path = "logs/sample-run.jsonl",
     provider: ModelProvider | None = None,
     memory: HMemStore | None = None,
+    scenario: str = "composite-sample",
 ) -> dict[str, Any]:
     """Run the bounded sample multi-agent loop."""
     events: list[TraceEvent] = []
     run_id = str(uuid4())
+    selected_memory = memory or (
+        HttpHMemStore(os.environ["HMEM_SERVICE_URL"])
+        if os.getenv("HMEM_SERVICE_URL")
+        else HMemStore()
+    )
     result = run_agent_loop(
         run_id,
         events.append,
         provider or provider_from_environment(),
-        memory,
+        selected_memory,
     )
     path = Path(log_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as stream:
         for event in events:
             stream.write(json.dumps(_jsonable(event), sort_keys=True) + "\n")
+    zetaris = result["data"]["zetaris"]
     return _jsonable({
         "run_id": run_id,
+        "context": {
+            "scenario": scenario,
+            "mode": "live-zetaris" if zetaris["live"] else "sample",
+            "scope": "28 synthetic hospital assets, 3 canonical findings, network paths, telemetry, and risk acceptances",
+            "risk_focus": "patient-impacting exposure, exploitation signals, missing telemetry, poisoned logs, and expired exceptions",
+            "data_sources": [
+                "synthetic asset inventory",
+                "synthetic firewall and credential edges",
+                "synthetic Trivy/Grype findings",
+                "synthetic telemetry",
+                "synthetic risk acceptances",
+            ],
+            "live_zetaris": zetaris["live"],
+            "live_zetaris_note": (
+                f"Live Zetaris source discovery returned {zetaris['source_count']} rows and supplied KEV/EPSS enrichment."
+                if zetaris["live"]
+                else "This run uses deterministic fixtures; set ZETARIS_LIVE=true to require live Zetaris enrichment."
+            ),
+            "zetaris_source_count": zetaris["source_count"],
+        },
         "findings": result["data"]["findings"],
         "paths": result["paths"],
         "decisions": result["decisions"],
