@@ -111,14 +111,6 @@
       "summary": "Australian Bureau of Statistics CPI (SDMX-JSON)"
     },
     {
-      "id": "threat_intelligence",
-      "kind": "rest",
-      "script": "open_data/rest_apis/sql/non_rate_limited/15_threat_intelligence_create.sql",
-      "status": "unverified",
-      "requires": [],
-      "summary": "CISA KEV and FIRST EPSS records for the Cordon scenarios; requires a deliberate live create and verification run"
-    },
-    {
       "id": "singapore_pm25",
       "kind": "rest",
       "script": "open_data/rest_apis/sql/known_to_fail/04_singapore_pm25_create.sql",

@@ -17,7 +17,7 @@ def reconcile(rows: list[ScanFinding], threat_data: dict[str, dict[str, object]]
     for row in rows:
         grouped[(row.asset_id, row.package, row.version, _canonical_cve(row.cve))].append(row)
 
-    threat_data = threat_data or public_threat_data()
+    threat_data = public_threat_data() if threat_data is None else threat_data
     result: list[Finding] = []
     for index, (key, matches) in enumerate(sorted(grouped.items()), start=1):
         asset_id, package, version, cve = key

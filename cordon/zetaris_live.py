@@ -7,8 +7,18 @@ from tools.zetaris import run_sql
 
 def _rows(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
-        return [row for row in payload if isinstance(row, dict)]
+        if all(isinstance(row, dict) for row in payload):
+            return payload
+        return []
     if isinstance(payload, dict):
+        headers = payload.get("headers")
+        values = payload.get("data")
+        if isinstance(headers, list) and isinstance(values, list):
+            return [
+                dict(zip(headers, row))
+                for row in values
+                if isinstance(row, list)
+            ]
         for key in ("data", "rows", "results", "result"):
             if key in payload:
                 return _rows(payload[key])
@@ -17,7 +27,7 @@ def _rows(payload: Any) -> list[dict[str, Any]]:
 
 def load_live_context(cves: list[str]) -> dict[str, Any]:
     """Load scenario threat enrichment through named Zetaris templates."""
-    sources = _rows(run_sql("discover_sources"))
+    sources = load_live_sources()["sources"]
     threat_data: dict[str, dict[str, Any]] = {}
     for cve in sorted(set(cves)):
         kev_rows = _rows(run_sql("kev_by_cve", {"cve": cve}))
@@ -37,3 +47,10 @@ def load_live_context(cves: list[str]) -> dict[str, Any]:
         "sources": sources,
         "threat_data": threat_data,
     }
+
+
+def load_live_sources() -> dict[str, Any]:
+    sources = _rows(run_sql("discover_sources"))
+    return {"live": True, "source_count": len(sources), "sources": sources}
+
+

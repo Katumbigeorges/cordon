@@ -54,7 +54,13 @@ def run(
         "run_id": run_id,
         "context": {
             "scenario": scenario,
-            "mode": "live-zetaris" if zetaris["live"] else "sample",
+            "mode": (
+                "live-zetaris"
+                if zetaris["live"] and zetaris.get("threat_data_via_zetaris")
+                else "live-zetaris-partial"
+                if zetaris["live"]
+                else "sample"
+            ),
             "scope": "28 synthetic hospital assets, 3 canonical findings, network paths, telemetry, and risk acceptances",
             "risk_focus": "patient-impacting exposure, exploitation signals, missing telemetry, poisoned logs, and expired exceptions",
             "data_sources": [
@@ -64,13 +70,19 @@ def run(
                 "synthetic telemetry",
                 "synthetic risk acceptances",
             ],
-            "live_zetaris": zetaris["live"],
+            "live_zetaris": zetaris["live"] and zetaris.get("threat_data_via_zetaris", False),
             "live_zetaris_note": (
                 f"Live Zetaris source discovery returned {zetaris['source_count']} rows and supplied KEV/EPSS enrichment."
-                if zetaris["live"]
-                else "This run uses deterministic fixtures; set ZETARIS_LIVE=true to require live Zetaris enrichment."
+                if zetaris["live"] and zetaris.get("threat_data_via_zetaris")
+                else (
+                    f"Zetaris source discovery is live, but threat enrichment is unavailable: {zetaris['threat_error']}"
+                    if zetaris["live"] and zetaris.get("threat_error")
+                    else "This run uses deterministic fixtures; set ZETARIS_LIVE=true to query Zetaris source discovery."
+                )
             ),
             "zetaris_source_count": zetaris["source_count"],
+            "hospital_data_via_zetaris": zetaris.get("hospital_data_via_zetaris", False),
+            "synthetic_hospital_inputs": True,
         },
         "findings": result["data"]["findings"],
         "paths": result["paths"],

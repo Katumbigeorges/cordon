@@ -159,3 +159,21 @@ def run_sql(
         timeout=timeout,
         opener=opener,
     )
+
+
+def run_sql_text(sql: str, *, timeout: float = 30.0) -> Any:
+    """Run one already-reviewed SQL statement through the live Zetaris API."""
+    if _setting("SAMPLE_MODE").lower() == "true":
+        raise ZetarisError("raw SQL execution is disabled in SAMPLE_MODE")
+    base_url = _setting("ZETARIS_REST_URL") or _setting("ZETARIS_BASE_URL")
+    api_key = _setting("ZETARIS_API_KEY")
+    org_id = _setting("ZETARIS_ORG_ID")
+    if not base_url or not api_key or not org_id:
+        raise ZetarisError("missing Zetaris configuration for raw SQL")
+    return _live_query(
+        _request_payload(sql.strip(), _query_uuid(None), int(_setting("ZETARIS_QUERY_LIMIT") or "1000")),
+        base_url=base_url,
+        api_key=api_key,
+        org_id=org_id,
+        timeout=timeout,
+    )
