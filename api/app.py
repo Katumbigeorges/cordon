@@ -32,9 +32,20 @@ class CordonApplication:
         payload = payload or {}
         if payload.get("mode", "sample") != "sample":
             return ApiResponse(400, {"error": "only sample mode is available"})
-        result = run(scenario=payload.get("scenario", "composite-sample"))
-        self.runs[result["run_id"]] = result
-        return ApiResponse(201, self._public_result(result))
+        try:
+            result = run(scenario=payload.get("scenario", "composite-sample"))
+            self.runs[result["run_id"]] = result
+            return ApiResponse(201, self._public_result(result))
+        except Exception as e:
+            import traceback
+            error_details = {
+                "error": "Analysis failed",
+                "message": str(e),
+                "type": type(e).__name__,
+                "traceback": traceback.format_exc()
+            }
+            print(f"Error in create_run: {error_details}")
+            return ApiResponse(500, error_details)
 
     def get_board(self, run_id: str) -> ApiResponse:
         result = self.runs.get(run_id)

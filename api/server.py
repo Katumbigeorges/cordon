@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from .app import CordonApplication
+# Add parent directory to path for absolute imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from api.app import CordonApplication
 
 
 class CordonRequestHandler(BaseHTTPRequestHandler):
