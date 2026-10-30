@@ -1,0 +1,17 @@
+# Coordinator: replace the commented examples with confirmed GitHub logins.
+# No ownership is enforced until active rules are added.
+# Every listed owner must have write access to this repository.
+# Last matching rule wins. Keep sensitive shared-file rules last.
+#
+# * @CONFIRMED_COORDINATOR
+# /api/ @CONFIRMED_API_OWNER
+# /cordon/ @CONFIRMED_CORE_OWNER
+# /tools/ @CONFIRMED_DATA_OWNER
+# /zetaris/ @CONFIRMED_DATA_OWNER
+# /scenarios/ @CONFIRMED_EVALUATION_OWNER
+# /tests/ @CONFIRMED_TEST_OWNER
+# /docs/ @CONFIRMED_DOCUMENTATION_OWNER
+# /.github/ @CONFIRMED_COORDINATOR
+# /cordon/contracts.py @CONFIRMED_CONTRACT_OWNER
+# /docker-compose.yml @CONFIRMED_DEPLOYMENT_OWNER
+# /AGENTS.md @CONFIRMED_COORDINATOR
